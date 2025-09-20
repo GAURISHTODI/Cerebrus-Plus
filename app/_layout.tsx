@@ -1,24 +1,58 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Inter_400Regular, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { Lexend_700Bold } from '@expo-google-fonts/lexend';
+import { useFonts } from 'expo-font';
+import { Slot, useRouter, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, StatusBar as RNStatusBar, View } from 'react-native';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const InitialLayout = () => {
+    const { user, isLoading } = useAuth();
+    const segments = useSegments();
+    const router = useRouter();
 
-export const unstable_settings = {
-  anchor: '(tabs)',
+    useEffect(() => {
+        if (isLoading) return;
+        const inTabsGroup = segments[0] === '(tabs)';
+        if (user && !inTabsGroup) {
+            router.replace('/home');
+        } else if (!user && inTabsGroup) {
+            router.replace('/login');
+        }
+    }, [user, isLoading]);
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#0D0F13' }}>
+                <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+        );
+    }
+
+    return <Slot />;
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    // --- Loads the custom fonts ---
+    let [fontsLoaded, fontError] = useFonts({
+        Lexend_700Bold,
+        Inter_400Regular,
+        Inter_600SemiBold,
+    });
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    if (!fontsLoaded && !fontError) {
+        return null;
+    }
+
+    return (
+        <AuthProvider>
+          
+            <RNStatusBar
+  barStyle="dark-content"   // black text/icons
+  translucent
+  backgroundColor="transparent"
+/>
+            <InitialLayout />
+        </AuthProvider>
+    );
 }
